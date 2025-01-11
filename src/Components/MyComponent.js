@@ -2,10 +2,15 @@ import React, { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { io } from "socket.io-client";
 import L from "leaflet";
+
+
 import 'leaflet/dist/leaflet.css'; 
+
 import markerIcon from '../Images/Gps (2).png'; 
 
+
 delete L.Icon.Default.prototype._getIconUrl;
+
 
 const CustomIcon = new L.Icon({
   iconUrl: markerIcon, 
@@ -14,11 +19,13 @@ const CustomIcon = new L.Icon({
   popupAnchor: [0, -32], 
 });
 
+
 const socket = io("http://localhost:4000");
 
 const MapComponent = () => {
   const [users, setUsers] = useState({}); 
 
+ 
   useEffect(() => {
     if (navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
@@ -39,6 +46,7 @@ const MapComponent = () => {
       console.error("Geolocation is not supported by this browser.");
     }
   }, []);
+
 
   useEffect(() => {
     socket.on("update-users", (data) => {
@@ -66,8 +74,6 @@ const MapComponent = () => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="© OpenStreetMap contributors"
         />
-        
-        {/* Display users (the current position of clients) */}
         {Object.keys(users).map((id) => (
           <Marker
             key={id}
@@ -84,27 +90,6 @@ const MapComponent = () => {
               </div>
             </Popup>
           </Marker>
-        ))}
-        
-        {/* Display nearby towers for each user */}
-        {Object.keys(users).map((id) => (
-          users[id].towers && users[id].towers.map((tower, index) => (
-            <Marker
-              key={`tower-${index}-${id}`}
-              position={[tower.latitude, tower.longitude]}
-              icon={CustomIcon} 
-            >
-              <Popup>
-                <div>
-                  <b>{tower.name}</b>
-                  <br />
-                  <b>Lat:</b> {tower.latitude.toFixed(4)}
-                  <br />
-                  <b>Lon:</b> {tower.longitude.toFixed(4)}
-                </div>
-              </Popup>
-            </Marker>
-          ))
         ))}
       </MapContainer>
     </div>
