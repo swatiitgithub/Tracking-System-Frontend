@@ -15,7 +15,8 @@ const CustomIcon = new L.Icon({
   popupAnchor: [0, -32],
 });
 
-const socket = io("http://localhost:4000");
+// Change backend URL here to your hosted backend on Render
+const socket = io("https://real-time-tracking-system-8dra.onrender.com");
 
 const MapComponent = () => {
   const [users, setUsers] = useState({});
@@ -31,7 +32,7 @@ const MapComponent = () => {
 
           try {
             const response = await fetch(
-              `http://localhost:4000/towers?latitude=${latitude}&longitude=${longitude}`
+              `https://real-time-tracking-system-8dra.onrender.com/towers?latitude=${latitude}&longitude=${longitude}`
             );
             const data = await response.json();
             setTowers(data.cells || []);
