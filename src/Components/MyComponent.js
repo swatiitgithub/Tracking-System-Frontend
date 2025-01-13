@@ -1,37 +1,43 @@
 import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Circle, Popup } from "react-leaflet";
 import { io } from "socket.io-client";
 import L from "leaflet";
 
-
-import 'leaflet/dist/leaflet.css'; 
-
-import markerIcon from '../Images/Gps (2).png'; 
-
+import "leaflet/dist/leaflet.css";
+import markerIcon from "../Images/Gps (2).png"; // Replace with your marker icon path
 
 delete L.Icon.Default.prototype._getIconUrl;
 
-
 const CustomIcon = new L.Icon({
-  iconUrl: markerIcon, 
-  iconSize: [32, 32], 
-  iconAnchor: [16, 32], 
-  popupAnchor: [0, -32], 
+  iconUrl: markerIcon,
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32],
 });
-
 
 const socket = io("http://localhost:4000");
 
 const MapComponent = () => {
-  const [users, setUsers] = useState({}); 
+  const [users, setUsers] = useState({});
+  const [towers, setTowers] = useState([]);
 
- 
   useEffect(() => {
     if (navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
-        (position) => {
+        async (position) => {
           const { latitude, longitude } = position.coords;
+          console.log(`Sending location: ${latitude}, ${longitude}`);
           socket.emit("client_location_send", { latitude, longitude });
+
+          try {
+            const response = await fetch(
+              `http://localhost:4000/towers?latitude=${latitude}&longitude=${longitude}`
+            );
+            const data = await response.json();
+            setTowers(data.cells || []);
+          } catch (error) {
+            console.error("Error fetching tower data:", error);
+          }
         },
         (error) => {
           console.error("Error getting location:", error);
@@ -40,23 +46,24 @@ const MapComponent = () => {
       );
 
       return () => {
-        navigator.geolocation.clearWatch(watchId); 
+        navigator.geolocation.clearWatch(watchId);
       };
     } else {
       console.error("Geolocation is not supported by this browser.");
     }
   }, []);
 
-
   useEffect(() => {
     socket.on("update-users", (data) => {
-      setUsers((prevUsers) => ({ ...prevUsers, [data.id]: data })); 
+      console.log("Received user data:", data);
+      setUsers((prevUsers) => ({ ...prevUsers, [data.id]: data }));
     });
 
     socket.on("user-disconnected", (id) => {
+      console.log(`User disconnected: ${id}`);
       setUsers((prevUsers) => {
         const updatedUsers = { ...prevUsers };
-        delete updatedUsers[id]; 
+        delete updatedUsers[id];
         return updatedUsers;
       });
     });
@@ -78,7 +85,7 @@ const MapComponent = () => {
           <Marker
             key={id}
             position={[users[id].latitude, users[id].longitude]}
-            icon={CustomIcon} 
+            icon={CustomIcon}
           >
             <Popup>
               <div>
@@ -90,6 +97,22 @@ const MapComponent = () => {
               </div>
             </Popup>
           </Marker>
+        ))}
+        {towers.map((tower, index) => (
+          <Circle
+            key={index}
+            center={[tower.lat, tower.lon]}
+            radius={200} // Radius in meters
+            pathOptions={{ color: "red" }}
+          >
+            <Popup>
+              <b>Cell Tower</b>
+              <br />
+              Lat: {tower.lat}
+              <br />
+              Lon: {tower.lon}
+            </Popup>
+          </Circle>
         ))}
       </MapContainer>
     </div>
